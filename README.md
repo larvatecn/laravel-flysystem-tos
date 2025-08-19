@@ -26,16 +26,12 @@ composer require larva/laravel-flysystem-tos -vv
 ```php
 'tos' => [
     'driver'     => 'tos',
-    'access_id' => env('TOS_ACCESS_ID', 'your id'),
     'access_key' => env('TOS_ACCESS_KEY', 'your key'),
+    'access_secret' => env('TOS_ACCESS_SECRET', 'your secret'),
     'bucket' => env('TOS_BUCKET', 'your bucket'),
     'endpoint' => env('TOS_ENDPOINT', 'your endpoint'),//不要用CName,经过测试，官方SDK实现不靠谱
     'url' => env('TOS_URL','cdn url'),//CNAME 写这里，可以是域名绑定或者CDN地址 如 https://www.bbb.com 末尾不要斜杠
-    'root' => env('TOS_ROOT', ''), // 这个文件路径前缀，如果上传的内容全部在子目录就填写，否则为空
-    'security_token' => null,
-    'proxy' => null,
-    'timeout' => 3600,
-    'ssl' => true
+    'ssl' => true,//是否开启https
 ],
 ```
 
