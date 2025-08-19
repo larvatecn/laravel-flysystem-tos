@@ -29,7 +29,7 @@
         },
         "laravel": {
             "providers": [
-                "TOSServiceProvider"
+                "Larva\\Flysystem\\Volc\\TOSServiceProvider"
             ]
         }
     },
