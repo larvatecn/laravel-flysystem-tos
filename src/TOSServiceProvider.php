@@ -24,11 +24,11 @@ class TOSServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->make('filesystem')->extend('oss', function ($app, $config) {
+        $this->app->make('filesystem')->extend('tos', function ($app, $config) {
             $root = (string) ($config['root'] ?? '');
             $config['directory_separator'] = '/';
             $visibility = new PortableVisibilityConverter($config['visibility'] ?? Visibility::PUBLIC);
-            if($config['accessKey'] && $config['accessSecret']) {
+            if($config['access_key'] && $config['access_secret']) {
                 $client = new TosClient($config['region'], $config['access_key'], $config['access_secret'],
                     $config['endpoint']);
             } else {
