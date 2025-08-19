@@ -1,0 +1,46 @@
+{
+    "name": "larva/laravel-flysystem-tos",
+    "description": "This is a Flysystem adapter for the volcengine TOS.",
+    "keywords": [
+        "flysystem",
+        "volcengine",
+        "tos",
+        "larva"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2.0",
+        "laravel/framework": "^10.0|^11.0|^12.0",
+        "league/flysystem": "^3.0",
+        "larva/flysystem-tos": "^1.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Larva\\Flysystem\\Volc\\": "src"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.0-dev"
+        },
+        "laravel": {
+            "providers": [
+                "Larva\\Flysystem\\Volc\\ObjectStorageServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "check-style": "./vendor/bin/php-cs-fixer fix --using-cache=no --diff --dry-run --ansi",
+        "fix-style": "./vendor/bin/php-cs-fixer fix --using-cache=no --ansi"
+    },
+    "scripts-descriptions": {
+        "check-style": "Run style checks (only dry run - no fixing!).",
+        "fix-style": "Run style checks and fix violations."
+    }
+}
