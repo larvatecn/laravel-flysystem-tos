@@ -79,8 +79,7 @@ class TOSAdapter extends FilesystemAdapter
      */
     public function temporaryUrl($path, $expiration, array $options = []): string
     {
-        $uri = new Uri($this->signUrl($this->prefixer->prefixPath($path), $expiration, $options, 'GET',
-            $this->config['endpoint']));
+        $uri = new Uri($this->signUrl($this->prefixer->prefixPath($path), $expiration, $options, 'GET', $this->config['endpoint']));
 
         return (string) $uri;
     }
@@ -96,17 +95,11 @@ class TOSAdapter extends FilesystemAdapter
      */
     public function temporaryUploadUrl($path, $expiration, array $options = []): array
     {
-        $uri = new Uri($this->signUrl(
-            $this->prefixer->prefixPath($path),
-            $expiration,
-            $options,
-            'PUT',
-            $this->config['endpoint']
-        ));
+        $uri = $this->preSignedURL($this->prefixer->prefixPath($path), $expiration, $options, 'PUT', $this->config['endpoint']);
 
         return [
-            'url' => (string) $uri,
-            'headers' => [],
+            'url' => $uri->getSignedUrl(),
+            'headers' => $uri->getSignedHeader(),
         ];
     }
 
@@ -120,35 +113,34 @@ class TOSAdapter extends FilesystemAdapter
         return $this->client;
     }
 
+    /**
+     * Get a signed URL for the file at the given path.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function signUrl(string $path, \DateTimeInterface|int $expiration, array $options = [], string $method = 'GET', string $alternativeEndpoint = ''): string
+    {
+        $uri = $this->preSignedURL($path, $expiration, $options, $method, $alternativeEndpoint);
+
+        return $uri->getSignedUrl();
+    }
 
     /**
      * Get a signed URL for the file at the given path.
      *
      * @param  array<string, mixed>  $options
      */
-    public function signUrl(
-        string $path,
-        \DateTimeInterface|int $expiration,
-        array $options = [],
-        string $method = 'GET',
-        string $alternativeEndpoint = ''
-    ): string {
+    protected function preSignedURL(string $path, \DateTimeInterface|int $expiration, array $options = [], string $method = 'GET', string $alternativeEndpoint = ''): \Tos\Model\PreSignedURLOutput
+    {
         $expires = $expiration instanceof \DateTimeInterface ? $expiration->getTimestamp() - time() : $expiration;
 
-        $preSignedURLInput = new PreSignedURLInput(
-            $method,
-            $alternativeEndpoint === '' || $alternativeEndpoint === '0' ? $this->config['bucket'] : '',
-            $path,
-            $expires
-        );
+        $preSignedURLInput = new PreSignedURLInput($method, $alternativeEndpoint === '' || $alternativeEndpoint === '0' ? $this->config['bucket'] : '', $path, $expires);
         if ($alternativeEndpoint !== '' && $alternativeEndpoint !== '0') {
             $preSignedURLInput->setAlternativeEndpoint($alternativeEndpoint);
         }
 
         $preSignedURLInput->setQuery($options);
-
-        return $this->getClient()->preSignedURL($preSignedURLInput)
-            ->getSignedUrl();
+        return $this->getClient()->preSignedURL($preSignedURLInput);
     }
 
 }
