@@ -5,9 +5,9 @@ namespace Larva\Flysystem\Volc;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
-use Larva\Flysystem\Tos\TOSAdapter as VolcTOSAdapter;
 use Larva\Flysystem\Tos\PortableVisibilityConverter;
-use League\Flysystem\Filesystem as Flysystem;
+use Larva\Flysystem\Tos\TOSAdapter as VolcTOSAdapter;
+use League\Flysystem\Filesystem;
 use League\Flysystem\Visibility;
 use Tos\TosClient;
 
@@ -29,16 +29,15 @@ class TOSServiceProvider extends ServiceProvider
             $config['directory_separator'] = '/';
             $visibility = new PortableVisibilityConverter($config['visibility'] ?? Visibility::PUBLIC);
             if($config['access_key'] && $config['access_secret']) {
-                $client = new TosClient($config['region'], $config['access_key'], $config['access_secret'],
-                    $config['endpoint']);
+                $client = new TosClient($config['region'], $config['access_key'], $config['access_secret'], $config['endpoint']);
             } else {
                 $client = new TosClient($config['region']);
             }
-            $adapter = new VolcTOSAdapter($client, $config['bucket'], $root, $visibility, null,
-                $config['options'] ?? []);
+            // Flysystem 原始适配器
+            $adapter = new VolcTOSAdapter($client, $config['bucket'], $root, $visibility, null, $config['options'] ?? []);
 
             return new TOSAdapter(
-                new Flysystem($adapter, Arr::only($config, [
+                new Filesystem($adapter, Arr::only($config, [
                     'directory_visibility', 'disable_asserts',
                     'temporary_url', 'url', 'visibility',
                 ])),

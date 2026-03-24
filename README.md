@@ -32,6 +32,8 @@ composer require larva/laravel-flysystem-tos -vv
     'endpoint' => env('TOS_ENDPOINT', 'your endpoint'),//不要用CName,经过测试，官方SDK实现不靠谱
     'url' => env('TOS_URL','cdn url'),//CNAME 写这里，可以是域名绑定或者CDN地址 如 https://www.bbb.com 末尾不要斜杠
     'ssl' => true,//是否开启https
+    'throw' => false,
+    'report' => false,
 ],
 ```
 
@@ -43,4 +45,4 @@ composer require larva/laravel-flysystem-tos -vv
 
 ## 使用
 
-参见 [Laravel wiki](https://laravel.com/docs/9.x/filesystem)
+参见 [Laravel wiki](https://laravel.com/docs/12.x/filesystem)
