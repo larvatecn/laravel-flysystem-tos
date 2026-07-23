@@ -1,4 +1,4 @@
-# Laravel-flysystem-tos
+# Laravel Flysystem TOS
 
 <p align="center">
     <a href="https://packagist.org/packages/larva/laravel-flysystem-tos"><img src="https://poser.pugx.org/larva/laravel-flysystem-tos/v/stable" alt="Stable Version"></a>
@@ -6,43 +6,176 @@
     <a href="https://packagist.org/packages/larva/laravel-flysystem-tos"><img src="https://poser.pugx.org/larva/laravel-flysystem-tos/license" alt="License"></a>
 </p>
 
-适用于 Laravel 的火山引擎 TOS 适配器，完整支持火山引擎 TOS 所有方法和操作。
+适用于 Laravel 的火山引擎 TOS（对象存储）Flysystem 适配器，完整支持火山引擎 TOS 所有方法和操作。
 
 ## 要求
 
-- PHP >= 8.0
-- Laravel >= 10.0
+- PHP >= 8.2
+- Laravel >= 12.0
 
 ## 安装
 
 ```bash
-composer require larva/laravel-flysystem-tos -vv
+composer require larva/laravel-flysystem-tos
 ```
 
-修改配置文件: `config/filesystems.php`
+该包支持 Laravel 包自动发现（Package Auto-Discovery），无需手动注册服务提供者。
 
-添加一个磁盘配置
+## 配置
+
+在 `config/filesystems.php` 的 `disks` 中添加 TOS 磁盘配置：
 
 ```php
 'tos' => [
-    'driver'     => 'tos',
-    'access_key' => env('TOS_ACCESS_KEY', 'your key'),
-    'access_secret' => env('TOS_ACCESS_SECRET', 'your secret'),
-    'bucket' => env('TOS_BUCKET', 'your bucket'),
-    'endpoint' => env('TOS_ENDPOINT', 'your endpoint'),//不要用CName,经过测试，官方SDK实现不靠谱
-    'url' => env('TOS_URL','cdn url'),//CNAME 写这里，可以是域名绑定或者CDN地址 如 https://www.bbb.com 末尾不要斜杠
-    'ssl' => true,//是否开启https
-    'throw' => false,
-    'report' => false,
+    'driver'        => 'tos',
+    'access_key'    => env('TOS_ACCESS_KEY'),
+    'access_secret' => env('TOS_ACCESS_SECRET'),
+    'bucket'        => env('TOS_BUCKET'),
+    'region'        => env('TOS_REGION'), // 例如 cn-beijing
+    'endpoint'      => env('TOS_ENDPOINT'), // TOS 接入域名，不要使用 CName
+    'url'           => env('TOS_URL'), // CDN 或自定义域名，末尾不要斜杠
+    'root'          => env('TOS_ROOT', ''), // 存储路径前缀
+    'visibility'    => 'public', // 默认可见性：public 或 private
+    'ssl'           => true, // 是否使用 HTTPS
+    'throw'         => false,
+    'report'        => false,
 ],
 ```
 
-修改默认存储驱动
+在 `.env` 文件中配置对应的环境变量：
+
+```env
+TOS_ACCESS_KEY=your-access-key
+TOS_ACCESS_SECRET=your-access-secret
+TOS_BUCKET=your-bucket
+TOS_REGION=cn-beijing
+TOS_ENDPOINT=tos-cn-beijing.volces.com
+TOS_URL=https://cdn.example.com  # 可选，CDN 或自定义域名
+TOS_ROOT=uploads                 # 可选，存储路径前缀
+```
+
+> **提示**：如果未配置 `access_key` 和 `access_secret`，将使用 TOS SDK 的环境凭证方式（基于 `TOS_ACCESS_KEY` / `TOS_ACCESS_SECRET` 环境变量或 IAM 角色临时凭证）。
+
+如需将 TOS 设为默认存储驱动，修改 `default` 配置：
 
 ```php
-    'default' => 'tos'
+'default' => 'tos',
 ```
 
 ## 使用
 
-参见 [Laravel wiki](https://laravel.com/docs/12.x/filesystem)
+### 基本文件操作
+
+```php
+use Illuminate\Support\Facades\Storage;
+
+// 获取磁盘实例
+$disk = Storage::disk('tos');
+
+// 写入文件
+$disk->put('path/to/file.txt', 'file contents');
+
+// 读取文件
+$contents = $disk->get('path/to/file.txt');
+
+// 检查文件是否存在
+$exists = $disk->exists('path/to/file.txt');
+
+// 删除文件
+$disk->delete('path/to/file.txt');
+
+// 复制文件
+$disk->copy('source/path.txt', 'dest/path.txt');
+
+// 移动文件
+$disk->move('source/path.txt', 'dest/path.txt');
+
+// 列出目录内容
+$files = $disk->files('directory');
+$allFiles = $disk->allFiles('directory');
+```
+
+### 文件上传
+
+```php
+// 上传文件
+$path = $disk->putFile('uploads', $request->file('avatar'));
+
+// 上传文件并指定可见性
+$path = $disk->putFile('uploads', $request->file('avatar'), 'public');
+```
+
+### 获取文件 URL
+
+URL 生成遵循以下优先级：
+
+1. 若配置了 `url`（CDN/自定义域名），使用该地址拼接
+2. 否则根据文件可见性判断：
+   - **public**：使用 `{scheme}://{bucket}.{endpoint}/{path}` 格式
+   - **private**：生成 5 分钟有效期的临时 URL
+
+```php
+// 获取文件 URL
+$url = Storage::disk('tos')->url('path/to/file.txt');
+
+// 获取文件可见性
+$visibility = Storage::disk('tos')->getVisibility('path/to/file.txt');
+
+// 设置文件可见性
+Storage::disk('tos')->setVisibility('path/to/file.txt', 'private');
+```
+
+### 临时 URL
+
+```php
+use Carbon\Carbon;
+
+// 生成临时下载 URL（默认 5 分钟，可自定义）
+$tempUrl = Storage::disk('tos')->temporaryUrl(
+    'path/to/private-file.txt',
+    Carbon::now()->addMinutes(30)
+);
+
+// 生成临时上传 URL
+$result = Storage::disk('tos')->temporaryUploadUrl(
+    'path/to/upload.txt',
+    Carbon::now()->addMinutes(10)
+);
+// $result['url']     — 上传 URL
+// $result['headers'] — 上传所需的请求头
+```
+
+### 获取 TOS 客户端
+
+如需直接调用 TOS SDK 的完整功能，可获取底层客户端实例：
+
+```php
+use Larva\Flysystem\Volc\TOSAdapter;
+
+/** @var TOSAdapter $adapter */
+$adapter = Storage::disk('tos')->getAdapter();
+$client = $adapter->getClient(); // Tos\TosClient 实例
+```
+
+### 签名 URL
+
+```php
+$adapter = Storage::disk('tos')->getAdapter();
+
+// 生成签名 URL，可指定 HTTP 方法和备用 endpoint
+$signedUrl = $adapter->signUrl('path/to/file.txt', 3600, [], 'GET');
+```
+
+## 关于 `endpoint` 配置
+
+`endpoint` 应使用 TOS 接入域名（如 `tos-cn-beijing.volces.com`），**不要使用 CName**。如需使用自定义域名或 CDN，请通过 `url` 配置项指定。
+
+## 相关文档
+
+- [Laravel 文件系统文档](https://laravel.com/docs/filesystem)
+- [火山引擎 TOS 文档](https://www.volcengine.com/docs/6349)
+- [Flysystem 文档](https://flysystem.thephpleague.com/)
+
+## License
+
+[MIT](LICENSE)
