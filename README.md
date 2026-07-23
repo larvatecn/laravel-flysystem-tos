@@ -166,6 +166,115 @@ $adapter = Storage::disk('tos')->getAdapter();
 $signedUrl = $adapter->signUrl('path/to/file.txt', 3600, [], 'GET');
 ```
 
+## 前端直传：使用预签名 URL 上传
+
+在 Web 应用中，通常需要让浏览器直接上传文件到 TOS，而不经过服务器中转。通过后端生成预签名 URL，前端使用 [TOS Browser.js SDK](https://www.volcengine.com/docs/6349/1109237) 或 `axios` 即可实现直传。
+
+这种方式的优势是 AccessKey 不会暴露给前端，且文件无需经过应用服务器。
+
+### 后端：生成预签名上传 URL
+
+定义一个 API 路由，返回预签名 URL：
+
+```php
+// routes/api.php
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
+
+Route::post('/tos/upload-url', function (\Illuminate\Http\Request $request) {
+    $request->validate([
+        'filename' => 'required|string',
+    ]);
+
+    $path = 'uploads/' . $request->input('filename');
+
+    $result = Storage::disk('tos')->temporaryUploadUrl(
+        $path,
+        Carbon::now()->addMinutes(10)
+    );
+
+    return response()->json([
+        'url'     => $result['url'],
+        'headers' => $result['headers'],
+        'path'    => $path,
+    ]);
+});
+```
+
+### 前端：使用 axios 上传
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.4.0/axios.min.js"></script>
+<script>
+async function uploadToTOS(file) {
+    // 1. 从后端获取预签名 URL
+    const { data } = await axios.post('/api/tos/upload-url', {
+        filename: file.name,
+    });
+
+    // 2. 使用预签名 URL 直接上传到 TOS
+    await axios.put(data.url, file, {
+        headers: data.headers,
+    });
+
+    console.log('上传成功，文件路径：', data.path);
+}
+</script>
+```
+
+### 前端：使用 TOS Browser.js SDK 上传
+
+如果不使用预签名 URL，也可以通过 STS 临时凭证初始化 TOS Client，直接在浏览器端生成预签名 URL 并上传：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>TOS 直传示例</title>
+    <!-- 导入 TOS Browser.js SDK -->
+    <script src="https://tos-public.volccdn.com/obj/volc-tos-public/@volcengine/tos-sdk@latest/browser/tos.umd.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.4.0/axios.min.js"></script>
+</head>
+<body>
+    <input type="file" id="fileInput" />
+    <button onclick="upload()">上传</button>
+
+    <script>
+        // 从后端 STS 接口获取临时凭证（推荐）
+        const client = new TOS({
+            region: 'cn-beijing',           // Bucket 所在地域
+            endpoint: 'tos-cn-beijing.volces.com',
+            accessKeyId: 'your-sts-ak',     // STS 临时 AccessKey ID
+            accessKeySecret: 'your-sts-sk', // STS 临时 AccessKey Secret
+            stsToken: 'your-sts-token',     // STS 安全令牌
+            bucket: 'your-bucket',
+        });
+
+        async function upload() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+
+            const objectName = 'uploads/' + file.name;
+
+            // 生成预签名上传 URL
+            const url = client.getPreSignedUrl({
+                method: 'PUT',
+                bucket: 'your-bucket',
+                key: objectName,
+            });
+
+            // 使用预签名 URL 上传文件
+            const uploadResult = await axios.put(url, file);
+            console.log('上传成功，状态码：', uploadResult.status);
+        }
+    </script>
+</body>
+</html>
+```
+
+> **安全提示**：Browser.js SDK 方式需要在前端暴露临时凭证，请务必通过 STS 服务获取临时凭证而非直接使用永久 AccessKey。推荐使用后端生成预签名 URL 的方式，前端无需任何凭证。
+
 ## 关于 `endpoint` 配置
 
 `endpoint` 应使用 TOS 接入域名（如 `tos-cn-beijing.volces.com`），**不要使用 CName**。如需使用自定义域名或 CDN，请通过 `url` 配置项指定。
