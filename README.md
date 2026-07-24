@@ -11,7 +11,8 @@
 ## 要求
 
 - PHP >= 8.2
-- Laravel >= 12.0
+- Laravel 12.x / 13.x
+- League Flysystem ^3.0
 
 ## 安装
 
@@ -27,18 +28,24 @@ composer require larva/laravel-flysystem-tos
 
 ```php
 'tos' => [
-    'driver'        => 'tos',
-    'access_key'    => env('TOS_ACCESS_KEY'),
-    'access_secret' => env('TOS_ACCESS_SECRET'),
-    'bucket'        => env('TOS_BUCKET'),
-    'region'        => env('TOS_REGION'), // 例如 cn-beijing
-    'endpoint'      => env('TOS_ENDPOINT'), // TOS 接入域名，不要使用 CName
-    'url'           => env('TOS_URL'), // CDN 或自定义域名，末尾不要斜杠
-    'root'          => env('TOS_ROOT', ''), // 存储路径前缀
-    'visibility'    => 'public', // 默认可见性：public 或 private
-    'ssl'           => true, // 是否使用 HTTPS
-    'throw'         => false,
-    'report'        => false,
+    'driver'              => 'tos',
+    'access_key'          => env('TOS_ACCESS_KEY'),
+    'access_secret'       => env('TOS_ACCESS_SECRET'),
+    'bucket'              => env('TOS_BUCKET'),
+    'region'              => env('TOS_REGION'), // 例如 cn-beijing
+    'endpoint'            => env('TOS_ENDPOINT'), // TOS 接入域名，不要使用 CName
+    'url'                 => env('TOS_URL'), // CDN 或自定义域名，末尾不要斜杠，可选
+    'is_custom_domain'    => false, // 如果 endpoint 是绑定的自定义域名，设置为 true，否则为 false，同时 url 设置无效
+    'root'                => env('TOS_ROOT', ''), // 存储路径前缀
+    'verify_ssl'          => true, // 验证 SSL 证书
+    'visibility'          => 'public', // 默认文件可见性：public 或 private
+    'directory_visibility'=> 'public', // 默认目录可见性：public 或 private，可选
+    'ssl'                 => true, // 是否使用 HTTPS
+    'connection_timeout'  => 10000, // 连接超时时间（毫秒），可选，默认 10000
+    'socket_timeout'      => 30000, // 套接字超时时间（毫秒），可选，默认 30000
+    'options'             => [], // 传递给底层 TOS 适配器的额外选项，可选
+    'throw'               => false,
+    'report'              => false,
 ],
 ```
 
@@ -141,8 +148,8 @@ $result = Storage::disk('tos')->temporaryUploadUrl(
     'path/to/upload.txt',
     Carbon::now()->addMinutes(10)
 );
-// $result['url']     — 上传 URL
-// $result['headers'] — 上传所需的请求头
+// $result['url']     — 预签名上传 URL
+// $result['headers'] — 上传请求所需的签名头（需与请求一同发送）
 ```
 
 ### 获取 TOS 客户端
@@ -278,6 +285,20 @@ async function uploadToTOS(file) {
 ## 关于 `endpoint` 配置
 
 `endpoint` 应使用 TOS 接入域名（如 `tos-cn-beijing.volces.com`），**不要使用 CName**。如需使用自定义域名或 CDN，请通过 `url` 配置项指定。
+
+## 开发
+
+### 代码风格检查
+
+本项目使用 [PHP-CS-Fixer](https://github.com/FriendsOfPHP/PHP-CS-Fixer) 统一代码风格。
+
+```bash
+# 检查代码风格（仅报告，不修改）
+composer check-style
+
+# 自动修复代码风格问题
+composer fix-style
+```
 
 ## 相关文档
 
