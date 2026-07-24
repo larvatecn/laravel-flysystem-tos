@@ -34,7 +34,7 @@ composer require larva/laravel-flysystem-tos
     'bucket'              => env('TOS_BUCKET'),
     'region'              => env('TOS_REGION'), // 例如 cn-beijing
     'endpoint'            => env('TOS_ENDPOINT'), // TOS 接入域名，不要使用 CName
-    'url'                 => env('TOS_URL'), // CDN 或自定义域名，末尾不要斜杠，可选
+    'url'                 => env('TOS_URL',''), // CDN 或自定义域名，末尾不要斜杠，可选
     'is_custom_domain'    => false, // 如果 endpoint 是绑定的自定义域名，设置为 true，否则为 false，同时 url 设置无效
     'root'                => env('TOS_ROOT', ''), // 存储路径前缀
     'verify_ssl'          => true, // 验证 SSL 证书
