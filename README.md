@@ -43,7 +43,9 @@ composer require larva/laravel-flysystem-tos
     'ssl'                 => true, // 是否使用 HTTPS
     'connection_timeout'  => 10000, // 连接超时时间（毫秒），可选，默认 10000
     'socket_timeout'      => 30000, // 套接字超时时间（毫秒），可选，默认 30000
-    'options'             => [], // 传递给底层 TOS 适配器的额外选项，可选
+    'options'             => [ // 传递给底层 TOS 适配器的额外选项，可选
+        'max_age' => '31536000',
+    ],
     'throw'               => false,
     'report'              => false,
 ],
